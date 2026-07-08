@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electromagnetic Wave Propagation Simulation</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --panel:#f6f8fb;
+    --panel-2:#eef2f7;
+    --line:#dfe6ee;
+    --ink:#0f2138;
+    --muted:#5b6b82;
+    --e-field:#2563eb;
+    --e-field-soft:#93b4f5;
+    --b-field:#dc2626;
+    --b-field-soft:#f2a3a3;
+    --accent:#f59e0b;
+    --good:#0d9488;
+    --good-bg:#e6f7f5;
+    --bad:#94a3b8;
+    --bad-bg:#f1f4f8;
+    --metal:#64748b;
+    --radius:12px;
+    --radius-sm:8px;
+    --shadow:0 1px 2px rgba(15,33,56,.06), 0 4px 16px rgba(15,33,56,.06);
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  a{color:inherit;}
+  h1,h2,h3{margin:0 0 8px;font-family:var(--sans);letter-spacing:-.01em;}
+
+  /* ---------- Header ---------- */
+  header.app-header{
+    padding:22px clamp(16px,3vw,40px) 18px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    width:44px;height:44px;flex:none;border-radius:10px;
+    background:linear-gradient(135deg,var(--e-field),var(--b-field));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .brand-mark svg{width:26px;height:26px;}
+  .brand h1{font-size:20px;font-weight:700;color:var(--ink);}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--muted);}
+  .header-note{
+    font-size:12px;color:var(--muted);max-width:360px;text-align:right;
+  }
+
+  /* ---------- Layout ---------- */
+  .app-layout{
+    display:grid;
+    grid-template-columns:260px minmax(0,1fr) 320px;
+    gap:18px;
+    padding:18px clamp(16px,3vw,40px) 40px;
+    align-items:start;
+  }
+  @media (max-width:1180px){
+    .app-layout{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    box-shadow:var(--shadow);
+  }
+  .panel + .panel{margin-top:16px;}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .panel h2 .icon{margin-right:6px;}
+
+  /* ---------- Controls ---------- */
+  .control-group{margin-bottom:16px;}
+  .control-group:last-child{margin-bottom:0;}
+  .control-group label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;
+  }
+  .control-group label .val{font-family:var(--mono);font-weight:600;color:var(--e-field);font-size:12.5px;}
+  input[type=range]{
+    width:100%;height:6px;border-radius:3px;background:var(--panel-2);
+    -webkit-appearance:none;appearance:none;outline:none;border:1px solid var(--line);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--e-field);cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px var(--e-field);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:var(--e-field);cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1px var(--e-field);
+  }
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+  button{
+    font-family:var(--sans);font-size:13px;font-weight:600;
+    border-radius:var(--radius-sm);border:1px solid var(--line);
+    background:#fff;color:var(--ink);padding:9px 14px;cursor:pointer;
+    transition:transform .08s ease, box-shadow .15s ease, background .15s ease;
+  }
+  button:hover{box-shadow:var(--shadow);}
+  button:active{transform:translateY(1px);}
+  button.primary{background:var(--e-field);border-color:var(--e-field);color:#fff;}
+  button.primary:hover{background:#1d4ed8;}
+  button.danger{background:#fff;border-color:#f0c2c2;color:#b91c1c;}
+  button.ghost{background:transparent;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button.full{width:100%;}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;}
+  .seg button{border:none;border-radius:0;flex:1;background:#fff;}
+  .seg button.active{background:var(--ink);color:#fff;}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:13px;}
+  .switch{position:relative;width:38px;height:22px;flex:none;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .track{
+    position:absolute;inset:0;background:var(--bad);border-radius:999px;transition:.15s;cursor:pointer;
+  }
+  .switch .track::after{
+    content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;
+  }
+  .switch input:checked + .track{background:var(--e-field);}
+  .switch input:checked + .track::after{transform:translateX(16px);}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;}
+
+  /* ---------- Stage ---------- */
+  .stage-wrap{position:relative;}
+  .scene-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .scene-toolbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap;
+  }
+  .scene-toolbar .status-pill{
+    font-family:var(--mono);font-size:11.5px;padding:4px 10px;border-radius:999px;
+    background:var(--panel-2);color:var(--muted);border:1px solid var(--line);
+  }
+  .scene-toolbar .status-pill.live{background:var(--good-bg);color:var(--good);border-color:#bfe8e2;}
+
+  .scene-viewport{
+    position:relative;width:100%;
+    aspect-ratio:16/8.2;
+    background:
+      radial-gradient(circle at 15% 20%, #fbfdff 0%, #ffffff 55%),
+      #ffffff;
+    overflow:hidden;
+    touch-action:none;
+  }
+  #waveCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+
+  .scene-inner{
+    position:absolute;inset:0;transform-origin:18% 50%;
+    transition:transform 1.4s cubic-bezier(.65,0,.35,1);
+    will-change:transform;
+  }
+  .scene-inner.zoomed{transform:scale(2.4) translate(2%, 2%);}
+
+  .caption-overlay{
+    position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+    background:rgba(15,33,56,.92);color:#fff;padding:10px 18px;border-radius:999px;
+    font-size:13px;font-weight:500;max-width:86%;text-align:center;
+    opacity:0;transition:opacity .35s ease;pointer-events:none;z-index:20;
+    box-shadow:0 8px 24px rgba(15,33,56,.25);
+  }
+  .caption-overlay.show{opacity:1;}
+
+  .station{position:absolute;top:0;bottom:0;width:150px;z-index:5;}
+  .station.tx{left:4%;}
+  .station.rx{right:4%;}
+  .station-inner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+
+  .signal-badge{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.03em;
+    padding:4px 9px;border-radius:6px;background:var(--bad-bg);color:var(--bad);
+    border:1px solid var(--line);white-space:nowrap;
+  }
+  .signal-badge.on{background:var(--good-bg);color:var(--good);border-color:#bfe8e2;}
+
+  .zone-band{
+    position:absolute;top:8%;bottom:8%;left:42%;width:16%;
+    border-left:1.5px dashed #c7d2e0;border-right:1.5px dashed #c7d2e0;
+    background:rgba(37,99,235,.03);
+    z-index:2;pointer-events:none;
+  }
+  .zone-band span{
+    position:absolute;top:-2px;left:50%;transform:translate(-50%,-100%);
+    font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap;
+  }
+
+  /* material chips */
+  .materials-tray{
+    display:flex;gap:10px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);
+    background:var(--panel-2);
+  }
+  .chip{
+    width:64px;height:64px;border-radius:10px;background:#fff;border:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    cursor:grab;user-select:none;font-size:10px;color:var(--muted);font-weight:600;
+    box-shadow:var(--shadow);touch-action:none;
+  }
+  .chip svg{width:28px;height:28px;}
+  .chip.dragging{opacity:.55;cursor:grabbing;}
+  .placed-material{
+    position:absolute;width:64px;height:64px;z-index:8;cursor:grab;touch-action:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  }
+  .placed-material .tag{
+    position:absolute;bottom:-16px;font-size:9.5px;font-family:var(--mono);color:var(--muted);
+    background:#fff;padding:1px 6px;border-radius:5px;border:1px solid var(--line);white-space:nowrap;
+  }
+  .placed-material.dragging{cursor:grabbing;}
+  .remove-chip{
+    position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:1px solid var(--line);font-size:11px;line-height:1;color:var(--muted);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+
+  .legend{
+    display:flex;gap:16px;padding:8px 14px;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--muted);flex-wrap:wrap;
+  }
+  .legend .item{display:flex;align-items:center;gap:6px;}
+  .legend .line{width:16px;height:3px;border-radius:2px;}
+
+  /* ---------- Right column panels ---------- */
+  .tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:12px;}
+  .tabs button{
+    flex:1;border:none;background:transparent;border-radius:0;padding:8px 4px;font-size:12px;
+    color:var(--muted);border-bottom:2px solid transparent;
+  }
+  .tabs button.active{color:var(--ink);border-bottom-color:var(--e-field);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .info-block{margin-bottom:14px;}
+  .info-block h3{font-size:13px;color:var(--ink);}
+  .info-block p{font-size:12.5px;color:var(--muted);margin:0;}
+
+  .obs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .obs-item{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px;
+  }
+  .obs-item .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .obs-item .v{font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--ink);margin-top:2px;}
+  .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden;margin-top:4px;}
+  .bar > i{display:block;height:100%;}
+  .obs-note{
+    font-size:12.5px;background:#fff;border:1px dashed var(--line);border-radius:var(--radius-sm);
+    padding:8px 10px;color:var(--ink);min-height:36px;
+  }
+
+  table.data-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+  table.data-table th, table.data-table td{
+    border-bottom:1px solid var(--line);padding:5px 4px;text-align:left;white-space:nowrap;
+  }
+  table.data-table th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;}
+  .table-scroll{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-sm);}
+  .empty-row td{color:var(--muted);text-align:center;padding:14px;}
+
+  /* Quiz */
+  .quiz-q{font-size:13.5px;font-weight:600;margin-bottom:10px;}
+  .quiz-opt{
+    display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:7px;
+    border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;font-size:12.5px;
+  }
+  .quiz-opt.correct{background:var(--good-bg);border-color:var(--good);color:#0a5c53;}
+  .quiz-opt.incorrect{background:#fdecec;border-color:#e6a3a3;color:#a11616;}
+  .quiz-opt:disabled{cursor:default;}
+  .quiz-progress{font-size:11.5px;color:var(--muted);margin-bottom:8px;font-family:var(--mono);}
+  .quiz-feedback{font-size:12px;color:var(--muted);margin-top:6px;min-height:18px;}
+  .quiz-score{font-size:13px;font-weight:700;margin-top:10px;}
+
+  footer.edu-note{
+    padding:14px clamp(16px,3vw,40px) 30px;font-size:11.5px;color:var(--muted);
+    display:flex;align-items:center;gap:8px;max-width:1400px;
+  }
+  footer.edu-note svg{flex:none;width:16px;height:16px;color:var(--accent);}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:#d6dde6;border-radius:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media (prefers-reduced-motion: reduce){
+    .scene-inner{transition:none;}
+    *{animation-duration:0.001ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M2 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+      <h1>Electromagnetic Wave Propagation Simulation</h1>
+      <p>Interactive model of transmission, reflection &amp; absorption</p>
+    </div>
+  </div>
+  <div class="header-note">Drag materials into the beam path and watch the receiving antenna respond in real time.</div>
+</header>
+
+<div class="app-layout">
+
+  <!-- LEFT: CONTROLS -->
+  <div class="left-col">
+    <div class="panel">
+      <h2>Playback</h2>
+      <div class="btn-row" style="margin-bottom:12px;">
+        <button id="btnStart" class="primary full">▶ Start Wave</button>
+      </div>
+      <div class="btn-row">
+        <button id="btnStop" class="ghost" style="flex:1;">Stop</button>
+        <button id="btnReset" class="ghost" style="flex:1;">Reset</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Wave Parameters</h2>
+      <div class="control-group">
+        <label>Animation Speed <span class="val" id="speedVal">1.0×</span></label>
+        <input type="range" id="speedSlider" min="0.25" max="2" step="0.05" value="1">
+      </div>
+      <div class="control-group">
+        <label>Frequency <span class="val" id="freqVal">2.0 Hz</span></label>
+        <input type="range" id="freqSlider" min="0.5" max="5" step="0.1" value="2">
+      </div>
+      <div class="control-group">
+        <label>Amplitude <span class="val" id="ampVal">70%</span></label>
+        <input type="range" id="ampSlider" min="10" max="100" step="1" value="70">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Medium</h2>
+      <div class="seg" id="mediumSeg">
+        <button data-medium="vacuum">Vacuum</button>
+        <button data-medium="air" class="active">Air</button>
+      </div>
+      <p style="font-size:11.5px;color:var(--muted);margin:10px 0 0;">In vacuum, waves travel at exactly <em>c</em> with nothing to scatter them. Air behaves almost identically for radio waves — only a slight, usually negligible slowdown.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Display</h2>
+      <div class="toggle-row">
+        <span><span class="swatch" style="background:var(--e-field)"></span>Electric field (E)</span>
+        <label class="switch"><input type="checkbox" id="toggleE" checked><span class="track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span><span class="swatch" style="background:var(--b-field)"></span>Magnetic field (B)</span>
+        <label class="switch"><input type="checkbox" id="toggleB" checked><span class="track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span><span class="swatch" style="background:#9aa5b4"></span>Propagation arrow</span>
+        <label class="switch"><input type="checkbox" id="toggleP" checked><span class="track"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span><span class="swatch" style="background:#c7ceda"></span>Field labels</span>
+        <label class="switch"><input type="checkbox" id="toggleLabels" checked><span class="track"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: STAGE -->
+  <div class="stage-wrap">
+    <div class="scene-card">
+      <div class="scene-toolbar">
+        <span class="status-pill" id="statusPill">Idle — press Start Wave</span>
+        <span class="status-pill" id="waveInfoPill">λ ≈ — · v = c</span>
+      </div>
+      <div class="scene-viewport" id="sceneViewport">
+        <div class="scene-inner" id="sceneInner">
+          <canvas id="waveCanvas"></canvas>
+
+          <div class="zone-band" id="zoneBand"><span>interaction zone</span></div>
+
+          <div class="station tx" id="txStation">
+            <div class="station-inner" id="txStationInner"></div>
+          </div>
+          <div class="station rx" id="rxStation">
+            <div class="signal-badge" id="signalBadge">NO SIGNAL</div>
+            <div class="station-inner" id="rxStationInner"></div>
+          </div>
+        </div>
+        <div class="caption-overlay" id="captionOverlay"></div>
+      </div>
+      <div class="legend">
+        <div class="item"><span class="line" style="background:var(--e-field)"></span>Electric field (E) — vertical</div>
+        <div class="item"><span class="line" style="background:var(--b-field)"></span>Magnetic field (B) — perpendicular</div>
+        <div class="item"><span class="line" style="background:#9aa5b4"></span>Direction of propagation</div>
+      </div>
+      <div class="materials-tray" id="materialsTray"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INFO / OBSERVATION / DATA / QUIZ -->
+  <div class="right-col">
+    <div class="panel">
+      <div class="tabs" id="tabBar">
+        <button data-tab="info" class="active">Info</button>
+        <button data-tab="obs">Observe</button>
+        <button data-tab="data">Data</button>
+        <button data-tab="quiz">Quiz</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-info">
+        <div class="info-block">
+          <h3>Electromagnetic waves</h3>
+          <p>An EM wave is a self-propagating disturbance of electric and magnetic fields. The two fields oscillate in phase, at right angles to each other and to the direction the wave travels.</p>
+        </div>
+        <div class="info-block">
+          <h3>Accelerating charges</h3>
+          <p>Whenever a charge accelerates — such as an electron driven back and forth by an alternating current — it radiates a changing electric field. That changing E-field induces a changing magnetic field, and the two sustain each other outward as a wave.</p>
+        </div>
+        <div class="info-block">
+          <h3>Propagation in vacuum</h3>
+          <p>With no medium required, EM waves cross empty space at the speed of light, c ≈ 3×10⁸ m/s. This is what lets sunlight reach Earth and radio signals reach spacecraft.</p>
+        </div>
+        <div class="info-block">
+          <h3>Reflection, transmission &amp; absorption</h3>
+          <p>When a wave meets a material, its energy splits three ways: some reflects off the surface, some transmits through, and some is absorbed and converted to heat or re-radiated energy. The proportions depend on the material's properties.</p>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-obs">
+        <div class="obs-grid">
+          <div class="obs-item"><div class="k">Medium</div><div class="v" id="obsMedium">Air</div></div>
+          <div class="obs-item"><div class="k">Material</div><div class="v" id="obsMaterial">None</div></div>
+          <div class="obs-item"><div class="k">Receiver</div><div class="v" id="obsReceiver">No Signal</div></div>
+          <div class="obs-item"><div class="k">Frequency</div><div class="v" id="obsFreq">2.0 Hz</div></div>
+        </div>
+        <div class="obs-item" style="margin-bottom:8px;">
+          <div class="k">Transmission</div><div class="v" id="obsT">100%</div>
+          <div class="bar"><i id="obsTBar" style="width:100%;background:var(--e-field);"></i></div>
+        </div>
+        <div class="obs-item" style="margin-bottom:8px;">
+          <div class="k">Reflection</div><div class="v" id="obsR">0%</div>
+          <div class="bar"><i id="obsRBar" style="width:0%;background:var(--b-field);"></i></div>
+        </div>
+        <div class="obs-item" style="margin-bottom:10px;">
+          <div class="k">Absorption</div><div class="v" id="obsA">0%</div>
+          <div class="bar"><i id="obsABar" style="width:0%;background:var(--accent);"></i></div>
+        </div>
+        <div class="obs-note" id="obsNote">Press Start Wave to begin observing.</div>
+      </div>
+
+      <div class="tab-panel" id="tab-data">
+        <div class="btn-row" style="margin-bottom:10px;">
+          <button id="btnRecord" class="ghost" style="flex:1;">＋ Record row</button>
+          <button id="btnExport" class="ghost" style="flex:1;">Export CSV</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th>t(s)</th><th>Medium</th><th>Material</th><th>f(Hz)</th><th>Amp</th>
+              <th>T%</th><th>R%</th><th>A%</th><th>Receiver</th>
+            </tr></thead>
+            <tbody id="dataTableBody">
+              <tr class="empty-row"><td colspan="9">No rows recorded yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button id="btnClearData" class="ghost full">Clear table</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-quiz">
+        <div class="quiz-progress" id="quizProgress">Question 1 of 10</div>
+        <div class="quiz-q" id="quizQuestion">—</div>
+        <div id="quizOptions"></div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button id="btnQuizNext" class="ghost full" disabled>Next question</button>
+        </div>
+        <div class="quiz-score" id="quizScore"></div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button id="btnQuizRestart" class="ghost full">Restart quiz</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="edu-note">
+  <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v.01M12 11v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  This visualization is conceptual and not drawn to scale. Wave speeds, field magnitudes, distances and material responses are simplified for teaching purposes and do not represent precise physical measurements.
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  playing:false,
+  introRunning:false,
+  t:0,
+  lastFrameTime:null,
+  speed:1.0,
+  freq:2.0,
+  amplitude:0.70,
+  medium:'air',
+  showE:true, showB:true, showP:true, showLabels:true,
+  waveFrontX:0,          // logical x (0..1000) of the leading edge of the wave
+  activeMaterial:null,   // {type, xFrac} when a chip sits inside the interaction zone
+  dataRows:[],
+  quiz:{questions:[], index:0, score:0, answered:false}
+};
+
+const LOGICAL_W = 1000, LOGICAL_H = 460;
+const TX_X = 150, RX_X = 850, AXIS_Y = 230;
+const ZONE_X0 = 420, ZONE_X1 = 580; // logical interaction band
+
+const MATERIALS = {
+  glass:  {label:'Glass',   T:0.85, R:0.05, A:0.10, color:'#8ecbe0'},
+  plastic:{label:'Plastic', T:0.95, R:0.03, A:0.02, color:'#f2c879'},
+  wood:   {label:'Wood',    T:0.50, R:0.10, A:0.40, color:'#b07a4a'},
+  paper:  {label:'Paper',   T:0.70, R:0.10, A:0.20, color:'#e8e2d0'},
+  water:  {label:'Water',   T:0.20, R:0.10, A:0.70, color:'#4fa3d1'},
+  metal:  {label:'Metal',   T:0.02, R:0.95, A:0.03, color:'#9aa5b0'}
+};
+
+/* ============================================================
+   DOM REFS
+============================================================ */
+const $ = sel => document.querySelector(sel);
+const canvas = $('#waveCanvas');
+const ctx = canvas.getContext('2d');
+const sceneViewport = $('#sceneViewport');
+const sceneInner = $('#sceneInner');
+const captionOverlay = $('#captionOverlay');
+const statusPill = $('#statusPill');
+const waveInfoPill = $('#waveInfoPill');
+const signalBadge = $('#signalBadge');
+const zoneBand = $('#zoneBand');
+
+/* ============================================================
+   RESPONSIVE CANVAS
+============================================================ */
+let dpr = Math.max(1, window.devicePixelRatio || 1);
+let cssW = 0, cssH = 0;
+
+function resizeCanvas(){
+  const rect = sceneViewport.getBoundingClientRect();
+  cssW = rect.width; cssH = rect.height;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+
+function toScreen(xLogical, yLogical){
+  return {
+    x: (xLogical / LOGICAL_W) * cssW,
+    y: (yLogical / LOGICAL_H) * cssH
+  };
+}
+function scaleLen(len){ return (len / LOGICAL_H) * cssH; }
+
+/* ============================================================
+   SVG BUILDERS (antenna stations)
+============================================================ */
+function svgEl(tag, attrs){
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for(const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function buildTransmitter(){
+  const wrap = $('#txStationInner');
+  wrap.innerHTML = '';
+  const svg = svgEl('svg', {viewBox:'0 0 150 300', width:150, height:300, style:'overflow:visible'});
+
+  // AC source box
+  const box = svgEl('rect', {x:35,y:120,width:80,height:60,rx:8,fill:'#fff',stroke:'#c7d2e0','stroke-width':1.5});
+  svg.appendChild(box);
+  const acPath = svgEl('path', {d:'M45 150 q10 -18 20 0 t20 0 t20 0', fill:'none', stroke:'#0f2138','stroke-width':2,'stroke-linecap':'round'});
+  svg.appendChild(acPath);
+  const acLabel = svgEl('text', {x:75,y:190,'text-anchor':'middle','font-size':'11','font-family':'SFMono-Regular, Consolas, Menlo, monospace',fill:'#5b6b82'});
+  acLabel.textContent = 'AC SOURCE';
+  svg.appendChild(acLabel);
+
+  // current arrow (flips)
+  const curArrow = svgEl('path', {id:'txCurArrow', d:'M55 132 L95 132', stroke:'#f59e0b','stroke-width':2.5,'marker-end':'url(#arrowHeadAmber)'});
+  svg.appendChild(curArrow);
+
+  // wires to rod
+  svg.appendChild(svgEl('path', {d:'M75 120 L75 60', stroke:'#c7d2e0','stroke-width':2}));
+  svg.appendChild(svgEl('path', {d:'M75 180 L75 240', stroke:'#c7d2e0','stroke-width':2}));
+
+  // dipole rod
+  svg.appendChild(svgEl('rect', {x:71,y:20,width:8,height:260,rx:4,fill:'#dfe6ee',stroke:'#b7c2d1','stroke-width':1}));
+
+  // defs (arrowheads)
+  const defs = svgEl('defs', {});
+  defs.innerHTML = `
+    <marker id="arrowHeadAmber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#f59e0b"/></marker>
+  `;
+  svg.appendChild(defs);
+
+  // scattered free electrons
+  const electronYs = [55,90,155,190,225,255];
+  electronYs.forEach((y,i)=>{
+    const c = svgEl('circle', {cx:75, cy:y, r:5, fill:'#7c8aa0', class:'free-electron'});
+    c.dataset.baseY = y;
+    svg.appendChild(c);
+  });
+
+  // representative electron (highlighted, driven by JS)
+  const rep = svgEl('circle', {id:'txRepElectron', cx:75, cy:130, r:7.5, fill:'#f59e0b', stroke:'#fff','stroke-width':2});
+  svg.appendChild(rep);
+  const repRing = svgEl('circle', {id:'txRepRing', cx:75, cy:130, r:13, fill:'none', stroke:'#f59e0b','stroke-width':1.4,'stroke-dasharray':'2 3', opacity:0});
+  svg.appendChild(repRing);
+
+  // field emergence rings (blue then red), shown during intro
+  const eRing = svgEl('circle', {id:'txERing', cx:75, cy:130, r:20, fill:'none', stroke:'#2563eb','stroke-width':1.6, opacity:0});
+  svg.appendChild(eRing);
+  const bRing = svgEl('circle', {id:'txBRing', cx:75, cy:130, r:32, fill:'none', stroke:'#dc2626','stroke-width':1.6, opacity:0, 'stroke-dasharray':'4 3'});
+  svg.appendChild(bRing);
+
+  const label = svgEl('text', {x:75,y:295,'text-anchor':'middle','font-size':'11','font-family':'SFMono-Regular, Consolas, Menlo, monospace',fill:'#5b6b82'});
+  label.textContent = 'TRANSMITTER';
+  svg.appendChild(label);
+
+  wrap.appendChild(svg);
+}
+
+function buildReceiver(){
+  const wrap = $('#rxStationInner');
+  wrap.innerHTML = '';
+  const svg = svgEl('svg', {viewBox:'0 0 150 300', width:150, height:300, style:'overflow:visible'});
+
+  svg.appendChild(svgEl('rect', {x:71,y:20,width:8,height:260,rx:4,fill:'#dfe6ee',stroke:'#b7c2d1','stroke-width':1}));
+
+  const electronYs = [55,90,225,255];
+  electronYs.forEach(y=>{
+    svg.appendChild(svgEl('circle', {cx:75, cy:y, r:5, fill:'#7c8aa0'}));
+  });
+
+  const rep = svgEl('circle', {id:'rxRepElectron', cx:75, cy:150, r:7.5, fill:'#0d9488', stroke:'#fff','stroke-width':2});
+  svg.appendChild(rep);
+
+  const label = svgEl('text', {x:75,y:295,'text-anchor':'middle','font-size':'11','font-family':'SFMono-Regular, Consolas, Menlo, monospace',fill:'#5b6b82'});
+  label.textContent = 'RECEIVING ANTENNA';
+  svg.appendChild(label);
+
+  wrap.appendChild(svg);
+}
+
+buildTransmitter();
+buildReceiver();
+
+/* ============================================================
+   MATERIAL TRAY + DRAG/DROP
+============================================================ */
+function materialIconSVG(key){
+  const icons = {
+    glass:  `<rect x="4" y="3" width="20" height="22" rx="2" fill="#cfe9f5" stroke="#8ecbe0" stroke-width="1.5" opacity="0.85"/><line x1="9" y1="3" x2="9" y2="25" stroke="#fff" stroke-width="1"/>`,
+    plastic:`<rect x="3" y="6" width="22" height="16" rx="4" fill="#fde3b0" stroke="#f2c879" stroke-width="1.5"/>`,
+    wood:   `<rect x="3" y="4" width="22" height="4.5" fill="#c48a55" stroke="#96602f" stroke-width="1"/><rect x="3" y="10" width="22" height="4.5" fill="#b07a4a" stroke="#96602f" stroke-width="1"/><rect x="3" y="16" width="22" height="4.5" fill="#c48a55" stroke="#96602f" stroke-width="1"/>`,
+    paper:  `<rect x="5" y="3" width="18" height="22" fill="#faf7ee" stroke="#d8d0b8" stroke-width="1.5"/><line x1="8" y1="9" x2="20" y2="9" stroke="#c9c0a4" stroke-width="1"/><line x1="8" y1="13" x2="20" y2="13" stroke="#c9c0a4" stroke-width="1"/><line x1="8" y1="17" x2="20" y2="17" stroke="#c9c0a4" stroke-width="1"/>`,
+    water:  `<path d="M14 2 C 8 12, 4 16, 4 20 a10 10 0 0 0 20 0 c 0 -4 -4 -8 -10 -18 Z" fill="#7fc3e8" stroke="#4fa3d1" stroke-width="1.5"/>`,
+    metal:  `<rect x="3" y="6" width="22" height="16" rx="2" fill="#c3cad3" stroke="#8b95a3" stroke-width="1.5"/><line x1="3" y1="12" x2="25" y2="9" stroke="#e8ecf1" stroke-width="1.5"/>`
+  };
+  return `<svg viewBox="0 0 28 28">${icons[key]}</svg>`;
+}
+
+const tray = $('#materialsTray');
+Object.keys(MATERIALS).forEach(key=>{
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  chip.draggable = false;
+  chip.dataset.material = key;
+  chip.innerHTML = materialIconSVG(key) + `<span>${MATERIALS[key].label}</span>`;
+  tray.appendChild(chip);
+  makeDraggable(chip, true, key);
+});
+
+let dragCtx = null;
+let placedEl = null; // currently placed material DOM element
+
+function makeDraggable(el, fromTray, materialKey){
+  el.addEventListener('pointerdown', (ev)=>{
+    ev.preventDefault();
+    el.setPointerCapture(ev.pointerId);
+    const viewportRect = sceneViewport.getBoundingClientRect();
+    dragCtx = {
+      el, fromTray, materialKey,
+      offsetX: fromTray ? 32 : el.offsetWidth/2,
+      offsetY: fromTray ? 32 : el.offsetHeight/2,
+      ghost:null
+    };
+    if(fromTray){
+      el.classList.add('dragging');
+    }
+  });
+}
+
+sceneViewport.addEventListener('pointermove', (ev)=>{
+  if(!dragCtx) return;
+  const rect = sceneViewport.getBoundingClientRect();
+  let localX = ev.clientX - rect.left;
+  let localY = ev.clientY - rect.top;
+
+  if(dragCtx.fromTray && !dragCtx.ghost){
+    // create a placed element the first time it enters the scene
+    const ghost = document.createElement('div');
+    ghost.className = 'placed-material dragging';
+    ghost.innerHTML = materialIconSVG(dragCtx.materialKey) + `<div class="tag">${MATERIALS[dragCtx.materialKey].label}</div>`;
+    sceneInner.appendChild(ghost);
+    dragCtx.ghost = ghost;
+  }
+  const target = dragCtx.ghost || dragCtx.el;
+  target.style.left = (localX - 32) + 'px';
+  target.style.top = (localY - 32) + 'px';
+  target.style.position = 'absolute';
+});
+
+sceneViewport.addEventListener('pointerup', (ev)=>{
+  if(!dragCtx) return;
+  const rect = sceneViewport.getBoundingClientRect();
+  const localX = ev.clientX - rect.left;
+  const target = dragCtx.ghost || (dragCtx.fromTray ? null : dragCtx.el);
+
+  if(dragCtx.fromTray){
+    dragCtx.el.classList.remove('dragging');
+    if(dragCtx.ghost){
+      finalizePlacement(dragCtx.ghost, dragCtx.materialKey, localX, rect);
+    }
+  } else {
+    finalizePlacement(dragCtx.el, dragCtx.el.dataset.material, localX, rect);
+  }
+  dragCtx = null;
+});
+
+function finalizePlacement(el, materialKey, localX, rect){
+  const xFrac = localX / rect.width;
+  const zoneFracX0 = ZONE_X0/LOGICAL_W, zoneFracX1 = ZONE_X1/LOGICAL_W;
+  if(xFrac >= zoneFracX0 - 0.03 && xFrac <= zoneFracX1 + 0.03){
+    // snap to zone center
+    const centerX = ((ZONE_X0+ZONE_X1)/2/LOGICAL_W) * rect.width;
+    el.style.left = (centerX - 32) + 'px';
+    el.style.top = (AXIS_Y/LOGICAL_H*rect.height - 32) + 'px';
+    el.dataset.material = materialKey;
+    el.classList.remove('dragging');
+    if(!el.querySelector('.remove-chip')){
+      const rm = document.createElement('div');
+      rm.className = 'remove-chip';
+      rm.textContent = '×';
+      rm.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); e.preventDefault(); removePlacedMaterial(); });
+      el.appendChild(rm);
+    }
+    makeDraggable(el, false, materialKey);
+    if(placedEl && placedEl !== el) placedEl.remove();
+    placedEl = el;
+    state.activeMaterial = {type:materialKey, label:MATERIALS[materialKey].label};
+  } else {
+    // dropped outside zone -> remove
+    el.remove();
+    if(placedEl === el){ placedEl = null; state.activeMaterial = null; }
+  }
+  refreshObservationPanel();
+}
+
+function removePlacedMaterial(){
+  if(placedEl){ placedEl.remove(); placedEl = null; }
+  state.activeMaterial = null;
+  refreshObservationPanel();
+}
+
+/* ============================================================
+   CINEMATIC INTRO SEQUENCE
+============================================================ */
+function showCaption(text){
+  captionOverlay.textContent = text;
+  captionOverlay.classList.add('show');
+}
+function hideCaption(){ captionOverlay.classList.remove('show'); }
+
+function setElOpacity(id, val){ const e=document.getElementById(id); if(e) e.style.opacity = val; }
+
+function runIntroSequence(onComplete){
+  state.introRunning = true;
+  statusPill.textContent = 'Playing intro — zooming into transmitter…';
+  const timers = [];
+  const T = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+  sceneInner.classList.add('zoomed');
+  showCaption('Zooming into the transmitting antenna…');
+
+  T(1500, ()=>{
+    showCaption('Free electrons drift throughout the metal conductor.');
+    document.querySelectorAll('.free-electron').forEach((el,i)=>{
+      el.style.transition = 'r .4s ease';
+      el.setAttribute('r', 6);
+    });
+  });
+
+  T(3000, ()=>{
+    showCaption("Let's follow one representative electron, highlighted in gold.");
+    setElOpacity('txRepRing', 1);
+  });
+
+  T(4500, ()=>{
+    showCaption('The AC source reverses direction, driving the electron back and forth.');
+    animateACAndElectron(4200); // runs its own internal loop for ~4.2s
+  });
+
+  T(8700, ()=>{
+    showCaption('Accelerating charges generate a changing electric field…');
+    setElOpacity('txERing', 1);
+  });
+
+  T(10000, ()=>{
+    showCaption('…which in turn generates a changing magnetic field. Together they form a wave.');
+    setElOpacity('txBRing', 1);
+  });
+
+  T(11600, ()=>{
+    hideCaption();
+    sceneInner.classList.remove('zoomed');
+    statusPill.textContent = 'Zooming out — starting propagation…';
+  });
+
+  T(13000, ()=>{
+    setElOpacity('txERing', 0);
+    setElOpacity('txBRing', 0);
+    setElOpacity('txRepRing', 0);
+    document.querySelectorAll('.free-electron').forEach(el=> el.setAttribute('r', 5));
+    state.introRunning = false;
+    onComplete();
+  });
+
+  state.introTimers = timers;
+}
+
+function cancelIntroTimers(){
+  if(state.introTimers) state.introTimers.forEach(clearTimeout);
+  sceneInner.classList.remove('zoomed');
+  hideCaption();
+  setElOpacity('txERing', 0);
+  setElOpacity('txBRing', 0);
+  setElOpacity('txRepRing', 0);
+  state.introRunning = false;
+}
+
+// oscillates the AC arrow + rod electron for `duration` ms, purely visual
+function animateACAndElectron(duration){
+  const start = performance.now();
+  const arrow = document.getElementById('txCurArrow');
+  const rep = document.getElementById('txRepElectron');
+  const ring = document.getElementById('txRepRing');
+  function step(now){
+    const elapsed = now - start;
+    if(elapsed > duration || !state.introRunning) return;
+    const phase = (elapsed/1000) * 2 * Math.PI * 1.3;
+    const dir = Math.sin(phase);
+    arrow.setAttribute('d', dir >= 0 ? 'M55 132 L95 132' : 'M95 132 L55 132');
+    arrow.setAttribute('marker-end', dir>=0 ? 'url(#arrowHeadAmber)' : '');
+    arrow.setAttribute('marker-start', dir<0 ? 'url(#arrowHeadAmber)' : '');
+    const y = 130 + dir * 55;
+    rep.setAttribute('cy', y);
+    ring.setAttribute('cy', y);
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================================
+   PHYSICS + RENDER
+============================================================ */
+const WAVE_SPEED_PX_S = 260; // px/second of the visual wave front (scaled, not literal c)
+
+function wavelengthPx(){
+  // higher frequency -> shorter wavelength, purely visual mapping
+  return Math.max(40, 320 / state.freq);
+}
+
+function getMaterialXLogical(){ return (ZONE_X0+ZONE_X1)/2; }
+
+function fieldAmplitudeAt(xLogical, phaseTime){
+  const amp = state.amplitude;
+  const k = 2*Math.PI/wavelengthPx();
+  const w = 2*Math.PI*state.freq;
+  const localPhase = w*phaseTime - k*(xLogical - TX_X);
+  let scale = 1.0;
+  if(state.activeMaterial){
+    const matX = getMaterialXLogical();
+    if(xLogical > matX){
+      scale = MATERIALS[state.activeMaterial.type].T;
+    }
+  }
+  return {value: amp*scale*Math.sin(localPhase), phase: localPhase, scale};
+}
+
+function reflectedAmplitudeAt(xLogical, phaseTime){
+  if(!state.activeMaterial) return 0;
+  const mat = MATERIALS[state.activeMaterial.type];
+  if(mat.R < 0.08) return 0;
+  const matX = getMaterialXLogical();
+  if(xLogical > matX) return 0;
+  const k = 2*Math.PI/wavelengthPx();
+  const w = 2*Math.PI*state.freq;
+  const dist = matX - xLogical;
+  const localPhase = w*phaseTime - k*(matX - TX_X) - k*dist;
+  return state.amplitude*mat.R*Math.sin(localPhase);
+}
+
+function drawArrow(x0,y0,x1,y1,color,lw){
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const angle = Math.atan2(y1-y0, x1-x0);
+  const headLen = 6+lw;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-headLen*Math.cos(angle-0.4), y1-headLen*Math.sin(angle-0.4));
+  ctx.lineTo(x1-headLen*Math.cos(angle+0.4), y1-headLen*Math.sin(angle+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  ctx.scale(dpr,dpr);
+
+  const axisStart = toScreen(TX_X, AXIS_Y);
+  const axisEnd = toScreen(RX_X, AXIS_Y);
+
+  // baseline axis
+  ctx.strokeStyle = '#e3e8ef'; ctx.lineWidth = 1.4; ctx.setLineDash([2,4]);
+  ctx.beginPath(); ctx.moveTo(axisStart.x, axisStart.y); ctx.lineTo(axisEnd.x, axisStart.y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const front = state.waveFrontX;
+  const step = 12;
+  const maxAmpPx = scaleLen(70) * state.amplitude / Math.max(state.amplitude,0.001) ; // just amplitude scale placeholder
+
+  let anyEDrawn=false;
+
+  for(let x = TX_X; x <= Math.min(front, RX_X); x += step){
+    const screenPt = toScreen(x, AXIS_Y);
+    const f = fieldAmplitudeAt(x, state.t);
+    const ampPxE = scaleLen(90) * f.value;
+
+    if(state.showE){
+      drawArrow(screenPt.x, screenPt.y, screenPt.x, screenPt.y - ampPxE, 'rgba(37,99,235,0.85)', 2);
+      anyEDrawn = true;
+    }
+    if(state.showB){
+      // pseudo-3D projection to depict a perpendicular axis (out of page)
+      const bx = screenPt.x - ampPxE*0.42;
+      const by = screenPt.y + ampPxE*0.30;
+      drawArrow(screenPt.x, screenPt.y, bx, by, 'rgba(220,38,38,0.8)', 2);
+    }
+
+    // reflected wave (drawn faintly, only if metal-like material present)
+    const r = reflectedAmplitudeAt(x, state.t);
+    if(Math.abs(r) > 0.01 && state.showE){
+      const rPx = scaleLen(90) * r;
+      drawArrow(screenPt.x, screenPt.y, screenPt.x, screenPt.y - rPx, 'rgba(37,99,235,0.28)', 1.4);
+    }
+  }
+
+  // propagation arrow
+  if(state.showP){
+    const frontX = Math.min(front, RX_X);
+    const p0 = toScreen(TX_X+6, AXIS_Y+46);
+    const p1 = toScreen(Math.max(TX_X+20, frontX-4), AXIS_Y+46);
+    drawArrow(p0.x, p0.y, p1.x, p1.y, '#9aa5b4', 2);
+  }
+
+  // material glow (absorption) + reflect/transmit marker
+  if(state.activeMaterial){
+    const mat = MATERIALS[state.activeMaterial.type];
+    const mp = toScreen(getMaterialXLogical(), AXIS_Y);
+    if(mat.A > 0.15){
+      const glowR = scaleLen(40 + mat.A*40);
+      const grad = ctx.createRadialGradient(mp.x, mp.y, 2, mp.x, mp.y, glowR);
+      grad.addColorStop(0, `rgba(245,158,11,${0.25*mat.A})`);
+      grad.addColorStop(1, 'rgba(245,158,11,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(mp.x, mp.y, glowR, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // field labels
+  if(state.showLabels && anyEDrawn){
+    ctx.font = '600 12px SFMono-Regular, Consolas, Menlo, monospace';
+    ctx.fillStyle = 'rgba(37,99,235,0.9)';
+    const labelPt = toScreen(TX_X+40, AXIS_Y-90);
+    ctx.fillText('E', labelPt.x, labelPt.y);
+    ctx.fillStyle = 'rgba(220,38,38,0.9)';
+    const labelPt2 = toScreen(TX_X+40, AXIS_Y+55);
+    ctx.fillText('B', labelPt2.x, labelPt2.y);
+  }
+
+  ctx.restore();
+}
+
+/* ============================================================
+   MAIN LOOP
+============================================================ */
+function tick(now){
+  if(state.lastFrameTime==null) state.lastFrameTime = now;
+  const dt = Math.min(0.05, (now - state.lastFrameTime)/1000);
+  state.lastFrameTime = now;
+
+  if(state.playing && !state.introRunning){
+    state.t += dt*state.speed;
+    if(state.waveFrontX < RX_X){
+      state.waveFrontX += WAVE_SPEED_PX_S*state.speed*dt;
+      if(state.waveFrontX >= RX_X) state.waveFrontX = RX_X;
+    }
+    updateReceiver();
+    updateTransmitter();
+  }
+
+  render();
+  requestAnimationFrame(tick);
+}
+
+function updateTransmitter(){
+  const rep = document.getElementById('txRepElectron');
+  const arrow = document.getElementById('txCurArrow');
+  if(!rep) return;
+  const w = 2*Math.PI*state.freq;
+  const dir = Math.sin(w*state.t);
+  const maxDisplacement = 78; // rod half-length available for oscillation
+  const y = 130 + dir*maxDisplacement*state.amplitude;
+  rep.setAttribute('cy', y);
+  if(arrow){
+    arrow.setAttribute('d', dir >= 0 ? 'M55 132 L95 132' : 'M95 132 L55 132');
+    arrow.setAttribute('marker-end', dir>=0 ? 'url(#arrowHeadAmber)' : '');
+    arrow.setAttribute('marker-start', dir<0 ? 'url(#arrowHeadAmber)' : '');
+  }
+}
+
+function updateReceiver(){
+  let received = 0;
+  if(state.waveFrontX >= RX_X){
+    const f = fieldAmplitudeAt(RX_X, state.t);
+    received = Math.abs(f.value);
+  }
+  const rep = document.getElementById('rxRepElectron');
+  if(rep){
+    const f = fieldAmplitudeAt(RX_X, state.t);
+    const y = 150 + (state.waveFrontX>=RX_X ? f.value : 0) * 45;
+    rep.setAttribute('cy', y);
+  }
+  const on = received > 0.05;
+  signalBadge.textContent = on ? 'SIGNAL RECEIVED' : 'NO SIGNAL';
+  signalBadge.classList.toggle('on', on);
+  state.lastReceivedAmp = received;
+  refreshObservationPanel();
+}
+
+/* ============================================================
+   OBSERVATION PANEL
+============================================================ */
+function refreshObservationPanel(){
+  $('#obsMedium').textContent = state.medium === 'air' ? 'Air' : 'Vacuum';
+  $('#obsFreq').textContent = state.freq.toFixed(1) + ' Hz';
+  const mat = state.activeMaterial ? MATERIALS[state.activeMaterial.type] : null;
+  $('#obsMaterial').textContent = mat ? mat.label : 'None';
+
+  const T = mat ? mat.T*100 : 100;
+  const R = mat ? mat.R*100 : 0;
+  const A = mat ? mat.A*100 : 0;
+  $('#obsT').textContent = T.toFixed(0)+'%';
+  $('#obsR').textContent = R.toFixed(0)+'%';
+  $('#obsA').textContent = A.toFixed(0)+'%';
+  $('#obsTBar').style.width = T+'%';
+  $('#obsRBar').style.width = R+'%';
+  $('#obsABar').style.width = A+'%';
+
+  const on = (state.lastReceivedAmp||0) > 0.05;
+  $('#obsReceiver').textContent = on ? 'Signal Received' : 'No Signal';
+
+  let note;
+  if(!state.playing && state.waveFrontX===0){
+    note = 'Press Start Wave to begin observing.';
+  } else if(mat){
+    note = `The wave meets ${mat.label.toLowerCase()}: about ${T.toFixed(0)}% transmits through, ${R.toFixed(0)}% reflects, and ${A.toFixed(0)}% is absorbed.`;
+  } else if(on){
+    note = 'No material is blocking the path — nearly all the energy reaches the receiver.';
+  } else {
+    note = 'The wave is still travelling toward the receiver.';
+  }
+  $('#obsNote').textContent = note;
+}
+
+/* ============================================================
+   CONTROLS WIRING
+============================================================ */
+$('#speedSlider').addEventListener('input', e=>{
+  state.speed = parseFloat(e.target.value);
+  $('#speedVal').textContent = state.speed.toFixed(2)+'×';
+});
+$('#freqSlider').addEventListener('input', e=>{
+  state.freq = parseFloat(e.target.value);
+  $('#freqVal').textContent = state.freq.toFixed(1)+' Hz';
+  waveInfoPill.textContent = `λ ≈ ${wavelengthPx().toFixed(0)}px (visual) · v = c`;
+  refreshObservationPanel();
+});
+$('#ampSlider').addEventListener('input', e=>{
+  state.amplitude = parseFloat(e.target.value)/100;
+  $('#ampVal').textContent = e.target.value+'%';
+});
+
+document.querySelectorAll('#mediumSeg button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#mediumSeg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.medium = btn.dataset.medium;
+    refreshObservationPanel();
+  });
+});
+
+$('#toggleE').addEventListener('change', e=> state.showE = e.target.checked);
+$('#toggleB').addEventListener('change', e=> state.showB = e.target.checked);
+$('#toggleP').addEventListener('change', e=> state.showP = e.target.checked);
+$('#toggleLabels').addEventListener('change', e=> state.showLabels = e.target.checked);
+
+$('#btnStart').addEventListener('click', ()=>{
+  if(state.playing) return;
+  if(state.waveFrontX===0 && !state.hasRunIntro){
+    state.hasRunIntro = true;
+    $('#btnStart').disabled = true;
+    runIntroSequence(()=>{
+      state.playing = true;
+      statusPill.textContent = 'Playing — wave propagating';
+      $('#btnStart').disabled = false;
+    });
+  } else {
+    state.playing = true;
+    statusPill.textContent = 'Playing — wave propagating';
+  }
+});
+$('#btnStop').addEventListener('click', ()=>{
+  state.playing = false;
+  statusPill.textContent = 'Paused';
+});
+$('#btnReset').addEventListener('click', ()=>{
+  cancelIntroTimers();
+  state.playing = false;
+  state.introRunning = false;
+  state.hasRunIntro = false;
+  state.t = 0;
+  state.waveFrontX = 0;
+  state.lastReceivedAmp = 0;
+  $('#btnStart').disabled = false;
+  signalBadge.textContent = 'NO SIGNAL';
+  signalBadge.classList.remove('on');
+  statusPill.textContent = 'Idle — press Start Wave';
+  const txRep = document.getElementById('txRepElectron');
+  if(txRep) txRep.setAttribute('cy', 130);
+  const rxRep = document.getElementById('rxRepElectron');
+  if(rxRep) rxRep.setAttribute('cy', 150);
+  refreshObservationPanel();
+});
+
+waveInfoPill.textContent = `λ ≈ ${wavelengthPx().toFixed(0)}px (visual) · v = c`;
+
+/* ============================================================
+   TABS
+============================================================ */
+document.querySelectorAll('#tabBar button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#tabBar button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ============================================================
+   DATA TABLE
+============================================================ */
+function renderDataTable(){
+  const body = $('#dataTableBody');
+  if(state.dataRows.length===0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="9">No rows recorded yet</td></tr>';
+    return;
+  }
+  body.innerHTML = state.dataRows.map(r=>`
+    <tr>
+      <td>${r.t}</td><td>${r.medium}</td><td>${r.material}</td><td>${r.freq}</td><td>${r.amp}</td>
+      <td>${r.T}</td><td>${r.R}</td><td>${r.A}</td><td>${r.receiver}</td>
+    </tr>`).join('');
+}
+
+$('#btnRecord').addEventListener('click', ()=>{
+  const mat = state.activeMaterial ? MATERIALS[state.activeMaterial.type] : null;
+  const row = {
+    t: state.t.toFixed(2),
+    medium: state.medium,
+    material: mat ? mat.label : 'None',
+    freq: state.freq.toFixed(1),
+    amp: (state.amplitude*100).toFixed(0)+'%',
+    T: mat ? (mat.T*100).toFixed(0)+'%' : '100%',
+    R: mat ? (mat.R*100).toFixed(0)+'%' : '0%',
+    A: mat ? (mat.A*100).toFixed(0)+'%' : '0%',
+    receiver: (state.lastReceivedAmp||0) > 0.05 ? 'Signal' : 'No Signal'
+  };
+  state.dataRows.push(row);
+  renderDataTable();
+});
+
+$('#btnClearData').addEventListener('click', ()=>{
+  state.dataRows = [];
+  renderDataTable();
+});
+
+$('#btnExport').addEventListener('click', ()=>{
+  if(state.dataRows.length===0){ alert('No data recorded yet. Click "Record row" first.'); return; }
+  const headers = ['Time(s)','Medium','Material','Frequency(Hz)','Amplitude','Transmission','Reflection','Absorption','Receiver'];
+  const lines = [headers.join(',')];
+  state.dataRows.forEach(r=>{
+    lines.push([r.t,r.medium,r.material,r.freq,r.amp,r.T,r.R,r.A,r.receiver].join(','));
+  });
+  const blob = new Blob([lines.join(String.fromCharCode(10))], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'em_wave_observations.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ============================================================
+   QUIZ
+============================================================ */
+const QUIZ_BANK = [
+  {q:'What are the two fields that make up an electromagnetic wave?', opts:['Gravitational and electric','Electric and magnetic','Magnetic and nuclear','Thermal and electric'], correct:1},
+  {q:'In a vacuum, electromagnetic waves travel at approximately:', opts:['340 m/s','3×10⁸ m/s','1,500 m/s','9.8 m/s²'], correct:1},
+  {q:'What generates an electromagnetic wave in the first place?', opts:['A stationary charge','An accelerating charge','A cooling object','A magnet at rest'], correct:1},
+  {q:'In an EM wave, the electric field, magnetic field and direction of travel are:', opts:['All parallel','All mutually perpendicular','Randomly oriented','Only two are related'], correct:1},
+  {q:'Which material in this simulation reflects almost all incoming wave energy?', opts:['Glass','Metal','Paper','Plastic'], correct:1},
+  {q:'Which material absorbs the largest share of wave energy?', opts:['Plastic','Glass','Water','Paper'], correct:2},
+  {q:'When a wave hits a material, its energy can be split into which three outcomes?', opts:['Speed, mass, charge','Reflection, transmission, absorption','Frequency, wavelength, phase','Heat, light, sound'], correct:1},
+  {q:'Do electromagnetic waves require a medium to travel through?', opts:['Yes, always','No, they can travel through a vacuum','Only at high frequencies','Only in water'], correct:1},
+  {q:'What happens to electrons in a receiving antenna when a wave arrives?', opts:['They stop moving entirely','They oscillate in response to the wave','They turn into protons','They are destroyed'], correct:1},
+  {q:'Increasing the frequency of the source generally does what to the wavelength?', opts:['Increases it','Decreases it','No effect','Doubles the amplitude'], correct:1},
+  {q:'Which of these is nearly transparent to electromagnetic waves (high transmission)?', opts:['Metal','Plastic','Water','Wood'], correct:1},
+  {q:'What does "amplitude" represent in this simulation?', opts:['The color of the wave','The strength/intensity of the field oscillation','The speed of the wave','The material type'], correct:1},
+  {q:'Why do accelerating charges radiate electromagnetic waves?', opts:['Because they lose mass','Because a changing electric field induces a changing magnetic field, and vice versa','Because they get hot','Because of gravity'], correct:1},
+  {q:'A material that mostly absorbs wave energy will most likely:', opts:['Reflect almost everything','Convert the wave energy into heat','Increase the wave frequency','Have zero effect on the wave'], correct:1},
+  {q:'What indicates the receiving antenna has picked up the wave in this simulation?', opts:['A color change to purple','The "Signal Received" indicator turning on','The antenna disappearing','A change in medium'], correct:1}
+];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function startQuiz(){
+  state.quiz.questions = shuffle(QUIZ_BANK).slice(0,10);
+  state.quiz.index = 0;
+  state.quiz.score = 0;
+  state.quiz.answered = false;
+  $('#quizScore').textContent = '';
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion(){
+  const q = state.quiz.questions[state.quiz.index];
+  $('#quizProgress').textContent = `Question ${state.quiz.index+1} of ${state.quiz.questions.length}`;
+  $('#quizQuestion').textContent = q.q;
+  $('#quizFeedback').textContent = '';
+  $('#btnQuizNext').disabled = true;
+  state.quiz.answered = false;
+
+  const optWrap = $('#quizOptions');
+  optWrap.innerHTML = '';
+  q.opts.forEach((opt, i)=>{
+    const b = document.createElement('button');
+    b.className = 'quiz-opt';
+    b.textContent = opt;
+    b.addEventListener('click', ()=> answerQuiz(i, b));
+    optWrap.appendChild(b);
+  });
+}
+
+function answerQuiz(i, btn){
+  if(state.quiz.answered) return;
+  state.quiz.answered = true;
+  const q = state.quiz.questions[state.quiz.index];
+  const buttons = document.querySelectorAll('.quiz-opt');
+  buttons.forEach((b,idx)=>{
+    b.disabled = true;
+    if(idx===q.correct) b.classList.add('correct');
+    else if(idx===i) b.classList.add('incorrect');
+  });
+  if(i===q.correct){
+    state.quiz.score++;
+    $('#quizFeedback').textContent = 'Correct! ' + explainQuiz(q);
+  } else {
+    $('#quizFeedback').textContent = 'Not quite. ' + explainQuiz(q);
+  }
+  $('#btnQuizNext').disabled = false;
+}
+
+function explainQuiz(q){
+  return 'The correct answer is: "' + q.opts[q.correct] + '".';
+}
+
+$('#btnQuizNext').addEventListener('click', ()=>{
+  state.quiz.index++;
+  if(state.quiz.index >= state.quiz.questions.length){
+    $('#quizProgress').textContent = 'Quiz complete';
+    $('#quizQuestion').textContent = '';
+    $('#quizOptions').innerHTML = '';
+    $('#quizFeedback').textContent = '';
+    $('#btnQuizNext').disabled = true;
+    $('#quizScore').textContent = `Final score: ${state.quiz.score} / ${state.quiz.questions.length}`;
+  } else {
+    renderQuizQuestion();
+  }
+});
+$('#btnQuizRestart').addEventListener('click', startQuiz);
+
+startQuiz();
+
+/* ============================================================
+   INIT
+============================================================ */
+resizeCanvas();
+refreshObservationPanel();
+renderDataTable();
+requestAnimationFrame(tick);
+
+// keep canvas sized correctly if fonts/layout shift shortly after load
+setTimeout(resizeCanvas, 200);
+
+})();
+</script>
+</body>
+</html>
